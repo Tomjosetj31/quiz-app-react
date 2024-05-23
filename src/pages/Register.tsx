@@ -1,9 +1,21 @@
 
 import React, { useState } from 'react';
+import axios from 'axios';
+import { useNavigate } from 'react-router-dom';
+import Spinner from '../components/Spinner';
+
 
 function Register() {
+    const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
+    const [loading, setLoading] = useState(false);
+    const [error, setError] = useState('');
+    const navigate = useNavigate();
     const [rePassword, setRePassword] = useState('');
+
+    const handleEmailChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        setEmail(e.target.value);
+    };
 
     const handlePasswordChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         setPassword(e.target.value);
@@ -13,23 +25,43 @@ function Register() {
         setRePassword(e.target.value);
     };
 
-    const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
+    const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
         e.preventDefault();
+        setLoading(true);
 
-        if (password === rePassword) {
-            // Passwords match, continue with registration logic
-            console.log('Passwords match');
-        } else {
-            // Passwords do not match, show error message
-            console.log('Passwords do not match');
+        try {
+            const data = {email: email, password: password};
+            await axios.post(`${import.meta.env.VITE_BACKEND_API_URL}/register`, data).then((response) => {
+                console.log(response);
+                navigate('/login')
+            }).catch((error) => {
+                console.error('Login failed:', error);
+                if (error.response && error.response.status === 400) {
+                    const message = error.response.data.message;
+                    setError(message);
+                } else if (error.response && error.response.status === 401) {
+                    setError('Invalid credentials. Please try again.');   
+                } 
+                else {
+                    setError('Login failed. Please check your credentials and try again.');
+                }
+            });
+
+        } catch (error) {
+            console.error(error);
+        } finally {
+            setLoading(false);
         }
     };
 
     return (
-        <div>
-            <div className="flex justify-center items-center h-screen">
+        <>
+            {loading ? (<Spinner/>
+            ):
+                <div className="flex justify-center items-center h-screen">
                 <div className="bg-white shadow-md rounded px-8 pt-6 pb-8">
                     <h2 className="text-2xl font-bold mb-6">Register</h2>
+                    {error && <p className="text-red-500 text-xs italic mb-4">{error}</p>}
                     <form onSubmit={handleSubmit}>
                         <div className="mb-4">
                             <label className="block text-gray-700 text-sm font-bold mb-2" htmlFor="email">
@@ -40,6 +72,9 @@ function Register() {
                                 id="email"
                                 type="email"
                                 placeholder="Enter your email"
+                                value={email}
+                                onChange={handleEmailChange}
+                                required
                             />
                         </div>
                         <div className="mb-6">
@@ -90,7 +125,8 @@ function Register() {
                     </form>
                 </div>
             </div>
-        </div>
+            }
+        </>
     );
 }
 

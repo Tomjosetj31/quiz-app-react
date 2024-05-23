@@ -7,6 +7,7 @@ function Login() {
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
     const [loading, setLoading] = useState(false);
+    const [error, setError] = useState('');
     const navigate = useNavigate();
 
     const handleEmailChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -19,22 +20,30 @@ function Login() {
 
     const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
         e.preventDefault();
+        setError('');
+        setLoading(true);
 
         try {
             const data = {email: email, password: password};
-            setLoading(true);
-            await axios.post(`${process.env.BACKEND_API_URL}/login`, data).then((response) => {
+            await axios.post(`${import.meta.env.VITE_BACKEND_API_URL}/login`, data).then((response) => {
                 console.log(response);
-                setLoading(false);
+                const { accessToken, refreshToken } = response.data;
+                localStorage.setItem('accessToken', accessToken);
+                localStorage.setItem('refreshToken', refreshToken);
                 navigate('/')
             }).catch((error) => {
-                setLoading(false);
-                alert('Invalid email or password');
-                console.error(error);
+                console.error('Login failed:', error);
+                if (error.response && error.response.status === 404) {
+                    setError('User not found. Please check your credentials and try again.');
+                } else {
+                    setError('Login failed. Please check your credentials and try again.');
+                }
             });
 
         } catch (error) {
             console.error(error);
+        } finally {
+            setLoading(false);
         }
     };
 
@@ -47,6 +56,7 @@ function Login() {
                 <div className="bg-white shadow-md rounded px-8 pt-6 pb-8">
                     <h2 className="text-2xl font-bold mb-6">Login</h2>
                     {/* <h1 className="text-4xl font-bold mb-6">Quizzy</h1> */}
+                    {error && <p className="text-red-500 text-xs italic mb-4">{error}</p>}
                     <form onSubmit={handleSubmit}>
                         <div className="mb-4">
                             <label className="block text-gray-700 text-sm font-bold mb-2" htmlFor="email">
